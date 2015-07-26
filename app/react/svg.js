@@ -1,4 +1,12 @@
 var sz = 20;
+var Msg = React.createClass({
+  render: function() {
+    return (
+      <div>{this.props.data.mouse.x.toFixed(2)},{this.props.data.mouse.y.toFixed(2)}</div>
+    );
+  }
+});
+
 var Handle = React.createClass({
   getInitialState: function() {
     return {
@@ -43,11 +51,10 @@ var SvgCanvas = React.createClass({
   onMouseDown: function(e){
     var pt = this.getXY(e);
     //this.handleSelected = false;
-    console.log("11,"+this.handleSelected);
+    this.props.onMouseChange(pt);
     this.state.data.handles.forEach(function(handle){
       if ((pt.x > handle.x) && (pt.y > handle.y) && (pt.x < handle.x+sz) && (pt.y < handle.y+sz)){
         this.handleSelected = true;
-        console.log("selected,"+this.handleSelected);
       }
     });
 
@@ -61,7 +68,10 @@ var SvgCanvas = React.createClass({
     this.startY = 0;
   },
   onMouseMove: function(e){
-    console.log(this.bMouseDown+","+this.handleSelected);
+    //console.log(this.bMouseDown+","+this.handleSelected);
+    var pt = this.getXY(e);
+    this.props.onMouseChange(pt);
+
     if (this.bMouseDown){
       var pt = this.getXY(e);
       console.log(pt);
@@ -121,11 +131,19 @@ var Svg = React.createClass({
       ellipse: {$set: data2}
     })});
   },
+  onMouseChange(pt){
+    var mouse = {x:pt.x, y:pt.y};
+    this.setState({data: React.addons.update(data, {
+      mouse: {$set: mouse}
+    })});
+    console.log("mouse down2:"+mouse);
+  },
   render: function() {
     return (
       <div>
-        <SvgCanvas data={this.state.data} />
+        <SvgCanvas data={this.state.data} onMouseChange={this.onMouseChange} />
         <SvgAttrs data={this.state.data.ellipse} onChange={this.onChange} />
+        <Msg data={this.state.data} />
       </div>
     );
   }
