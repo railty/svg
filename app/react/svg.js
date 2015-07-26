@@ -1,8 +1,25 @@
-var sz = 20;
+
+var sz = 1;
 var Msg = React.createClass({
   render: function() {
     return (
       <div>{this.props.data.mouse.x.toFixed(2)},{this.props.data.mouse.y.toFixed(2)}</div>
+    );
+  }
+});
+var Mouse = React.createClass({
+  render: function() {
+    var x, y;
+    if (this.props.corner == 'lt'){
+      x = this.props.data.x - sz;
+      y = this.props.data.y - sz;
+    }
+    if (this.props.corner == 'rb'){
+      x = this.props.data.x + sz;
+      y = this.props.data.y + sz;
+    }
+    return (
+      <rect x={x} y={y} height={2*sz} width={2*sz} />
     );
   }
 });
@@ -95,6 +112,8 @@ var SvgCanvas = React.createClass({
       <g id="canvas" transform="matrix(1 0 0 -1 0 100)">
         <rect x='0' y='0' height='100' width='100' className='border' />
         <Handle data={this.props.data.handles[0]}/>
+        <Mouse data={this.props.data.mouse} corner='lt' />
+        <Mouse data={this.props.data.mouse} corner='rb'/>
         <Ellipse data={this.props.data.ellipse}/>
       </g>
       </svg>

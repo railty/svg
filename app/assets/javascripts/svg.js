@@ -1,8 +1,25 @@
-var sz = 20;
+
+var sz = 1;
 var Msg = React.createClass({displayName: "Msg",
   render: function() {
     return (
       React.createElement("div", null, this.props.data.mouse.x.toFixed(2), ",", this.props.data.mouse.y.toFixed(2))
+    );
+  }
+});
+var Mouse = React.createClass({displayName: "Mouse",
+  render: function() {
+    var x, y;
+    if (this.props.corner == 'lt'){
+      x = this.props.data.x - sz;
+      y = this.props.data.y - sz;
+    }
+    if (this.props.corner == 'rb'){
+      x = this.props.data.x + sz;
+      y = this.props.data.y + sz;
+    }
+    return (
+      React.createElement("rect", {x: x, y: y, height: 2*sz, width: 2*sz})
     );
   }
 });
@@ -95,6 +112,8 @@ var SvgCanvas = React.createClass({displayName: "SvgCanvas",
       React.createElement("g", {id: "canvas", transform: "matrix(1 0 0 -1 0 100)"}, 
         React.createElement("rect", {x: "0", y: "0", height: "100", width: "100", className: "border"}), 
         React.createElement(Handle, {data: this.props.data.handles[0]}), 
+        React.createElement(Mouse, {data: this.props.data.mouse, corner: "lt"}), 
+        React.createElement(Mouse, {data: this.props.data.mouse, corner: "rb"}), 
         React.createElement(Ellipse, {data: this.props.data.ellipse})
       )
       )
