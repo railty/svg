@@ -1,0 +1,19 @@
+<style>
+.avoid-clicks {
+  pointer-events: none;
+}
+.border {
+  stroke:#006600;
+  fill:#cccccc;
+}
+</style>
+
+<div id="example"/>
+<script>
+var data = {
+    handles: [{x:80, y:80}],
+    ellipse: {cx:140, cy:50, rx:50, ry:120}
+  };
+React.render(React.createElement(Svg, {data: data}), document.getElementById('example'));
+
+</script>

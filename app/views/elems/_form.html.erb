@@ -1,0 +1,18 @@
+<%= form_for(@elem) do |f| %>
+  <% if @elem.errors.any? %>
+    <div id="error_explanation">
+      <h2><%= pluralize(@elem.errors.count, "error") %> prohibited this elem from being saved:</h2>
+
+      <ul>
+      <% @elem.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="actions">
+    <%= f.text_area :tag %>
+    <%= f.submit %>
+  </div>
+<% end %>
