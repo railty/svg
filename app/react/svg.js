@@ -1,5 +1,22 @@
 
 var sz = 1;
+var Element = React.createClass({
+  onClick(e){
+    this.props.onSelectRect(e.currentTarget.getBBox());
+  },
+  render: function() {
+    return (
+      <text x={this.props.data.x} y={this.props.data.y} onClick={this.onClick}>{this.props.data.text}</text>
+    );
+  }
+});
+var Selection = React.createClass({
+  render: function() {
+    return (
+      <rect id='selection' x={this.props.data.x} y={this.props.data.y} width={this.props.data.width} height={this.props.data.height} />
+    );
+  }
+});
 var Msg = React.createClass({
   render: function() {
     return (
@@ -25,15 +42,21 @@ var Mouse = React.createClass({
 });
 
 var Handle = React.createClass({
-  getInitialState: function() {
-    return {
-      x: this.props.data.x,
-      y: this.props.data.y
-    };
-  },
   render: function() {
+    var x = this.props.data.x - sz;
+    var y = this.props.data.y - sz;
+    if (this.props.corner=='rb'){
+      x = x + this.props.data.width;
+      y = y + this.props.data.height;
+    }
+    if (this.props.corner=='lb'){
+      y = y + this.props.data.height;
+    }
+    if (this.props.corner=='rt'){
+      x = x + this.props.data.width;
+    }
     return (
-      <rect id="handle" x={this.state.x}  y={this.state.y} height={sz} width= {sz} onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp} onMouseMove={this.onMouseMove} />
+      <rect className="handle" x={x}  y={y} height={sz*2} width= {sz*2} />
     );
   }
 });
@@ -87,11 +110,11 @@ var SvgCanvas = React.createClass({
   onMouseMove: function(e){
     //console.log(this.bMouseDown+","+this.handleSelected);
     var pt = this.getXY(e);
-    this.props.onMouseChange(pt);
+    //this.props.onMouseChange(pt);
 
     if (this.bMouseDown){
       var pt = this.getXY(e);
-      console.log(pt);
+      //console.log(pt);
       var dltX = pt.x - this.startX;
       var dltY = pt.y - this.startY;
       this.startX = pt.x;
@@ -106,15 +129,24 @@ var SvgCanvas = React.createClass({
     return {data: this.props.data};
   },
   render: function() {
-    console.log(this.props.data);
+    //console.log(this.props.data);
+    //<g id="canvas" transform="matrix(1 0 0 -1 0 100)">
     return (
       <svg id='svg' width="400px" height="400px" viewBox="0 0 100 100" onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp} onMouseMove={this.onMouseMove} >
-      <g id="canvas" transform="matrix(1 0 0 -1 0 100)">
+      <g id="canvas" transform="matrix(1 0 0 1 0 0)">
         <rect x='0' y='0' height='100' width='100' className='border' />
-        <Handle data={this.props.data.handles[0]}/>
         <Mouse data={this.props.data.mouse} corner='lt' />
         <Mouse data={this.props.data.mouse} corner='rb'/>
         <Ellipse data={this.props.data.ellipse}/>
+        <Selection data={this.props.data.selection}/>
+
+        {['lt', 'rt', 'lb', 'rb'].map(function(corner) {
+          return <Handle key={corner} corner={corner} data={this.props.data.selection} />;
+        }.bind(this))}
+
+        {this.props.data.elements.map(function(element, i) {
+          return <Element key={i} data={element} onSelectRect={this.props.onSelectRect} />;
+        }.bind(this))}
       </g>
       </svg>
     );
@@ -146,21 +178,25 @@ var Svg = React.createClass({
     return {data: this.props.data};
   },
   onChange: function(data2) {
-    this.setState({data: React.addons.update(data, {
-      ellipse: {$set: data2}
-    })});
+    //this.setState({data: React.addons.update(data, {
+//      ellipse: {$set: data2}
+  //  })});
   },
   onMouseChange(pt){
     var mouse = {x:pt.x, y:pt.y};
-    this.setState({data: React.addons.update(data, {
+    this.setState({data: React.addons.update(this.state.data, {
       mouse: {$set: mouse}
     })});
-    console.log("mouse down2:"+mouse);
+  },
+  onSelectRect: function(rc){
+    this.setState({data: React.addons.update(this.state.data, {
+      selection: {$set: rc}
+    })});
   },
   render: function() {
     return (
       <div>
-        <SvgCanvas data={this.state.data} onMouseChange={this.onMouseChange} />
+        <SvgCanvas data={this.state.data} onMouseChange={this.onMouseChange} onSelectRect={this.onSelectRect} />
         <SvgAttrs data={this.state.data.ellipse} onChange={this.onChange} />
         <Msg data={this.state.data} />
       </div>
