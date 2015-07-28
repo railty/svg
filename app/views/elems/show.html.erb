@@ -13,12 +13,22 @@
   stroke-opacity: 0.5;
   vector-effect: non-scaling-stroke;
 }
+#canvas{
+  cursor: crosshair;
+}
+#rb{
+  cursor: nw-resize;
+}
+
 </style>
 
 <div id="example"/>
 <script>
 var data = {
-    mouse: {x:80, y:80},
+    mouse: {
+      pt: {x: 80, y: 80},
+      bt: 0,
+    },
     selection: {x:10, y:10, width:10, height:10},
     handles: [{x:80, y:80}],
     ellipse: {cx:140, cy:50, rx:50, ry:120},

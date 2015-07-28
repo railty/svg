@@ -20,7 +20,7 @@ var Selection = React.createClass({displayName: "Selection",
 var Msg = React.createClass({displayName: "Msg",
   render: function() {
     return (
-      React.createElement("div", null, this.props.data.mouse.x.toFixed(2), ",", this.props.data.mouse.y.toFixed(2))
+      React.createElement("div", null, this.props.data.pt.x.toFixed(2), ",", this.props.data.pt.y.toFixed(2), ",", this.props.data.button)
     );
   }
 });
@@ -28,12 +28,12 @@ var Mouse = React.createClass({displayName: "Mouse",
   render: function() {
     var x, y;
     if (this.props.corner == 'lt'){
-      x = this.props.data.x - sz;
-      y = this.props.data.y - sz;
+      x = this.props.data.pt.x - sz;
+      y = this.props.data.pt.y - sz;
     }
     if (this.props.corner == 'rb'){
-      x = this.props.data.x + sz;
-      y = this.props.data.y + sz;
+      x = this.props.data.pt.x + sz;
+      y = this.props.data.pt.y + sz;
     }
     return (
       React.createElement("rect", {x: x, y: y, height: 2*sz, width: 2*sz})
@@ -56,7 +56,7 @@ var Handle = React.createClass({displayName: "Handle",
       x = x + this.props.data.width;
     }
     return (
-      React.createElement("rect", {className: "handle", x: x, y: y, height: sz*2, width: sz*2})
+      React.createElement("rect", {id: this.props.corner, className: "handle", x: x, y: y, height: sz*2, width: sz*2, onMouseDown: this.props.onMouseDown})
     );
   }
 });
@@ -110,8 +110,7 @@ var SvgCanvas = React.createClass({displayName: "SvgCanvas",
   onMouseMove: function(e){
     //console.log(this.bMouseDown+","+this.handleSelected);
     var pt = this.getXY(e);
-    //this.props.onMouseChange(pt);
-
+    this.props.onMouseChange(pt);
     if (this.bMouseDown){
       var pt = this.getXY(e);
       //console.log(pt);
@@ -141,7 +140,7 @@ var SvgCanvas = React.createClass({displayName: "SvgCanvas",
         React.createElement(Selection, {data: this.props.data.selection}), 
 
         ['lt', 'rt', 'lb', 'rb'].map(function(corner) {
-          return React.createElement(Handle, {key: corner, corner: corner, data: this.props.data.selection});
+          return React.createElement(Handle, {key: corner, corner: corner, data: this.props.data.selection, onMouseDown: this.props.onMouseDown});
         }.bind(this)), 
 
         this.props.data.elements.map(function(element, i) {
@@ -177,16 +176,25 @@ var Svg = React.createClass({displayName: "Svg",
   getInitialState: function() {
     return {data: this.props.data};
   },
-  onChange: function(data2) {
-    //this.setState({data: React.addons.update(data, {
-//      ellipse: {$set: data2}
-  //  })});
-  },
   onMouseChange(pt){
-    var mouse = {x:pt.x, y:pt.y};
     this.setState({data: React.addons.update(this.state.data, {
-      mouse: {$set: mouse}
+      mouse: {pt: {$set: pt}}
     })});
+  },
+  onMouseDown(e){
+    var xxx = 1;
+    var xx = React.addons.update(this.state.data, {
+      mouse: {bt: {$set: xxx}}
+    });
+    console.log("1111111");
+    console.log(this.state.data);
+    xx.mouse.pt.x = 1234;
+    console.log("222222222");
+    console.log(xx);
+    this.setState({data: xx}, function(){
+      console.log("333333333");
+      console.log(this.state.data);
+    });
   },
   onSelectRect: function(rc){
     this.setState({data: React.addons.update(this.state.data, {
@@ -196,9 +204,9 @@ var Svg = React.createClass({displayName: "Svg",
   render: function() {
     return (
       React.createElement("div", null, 
-        React.createElement(SvgCanvas, {data: this.state.data, onMouseChange: this.onMouseChange, onSelectRect: this.onSelectRect}), 
+        React.createElement(SvgCanvas, {data: this.state.data, onMouseChange: this.onMouseChange, onSelectRect: this.onSelectRect, onMouseDown: this.onMouseDown}), 
         React.createElement(SvgAttrs, {data: this.state.data.ellipse, onChange: this.onChange}), 
-        React.createElement(Msg, {data: this.state.data})
+        React.createElement(Msg, {data: this.state.data.mouse})
       )
     );
   }
