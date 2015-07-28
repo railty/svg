@@ -1,42 +1,26 @@
 
+"use strict";
 var sz = 1;
+
 var Element = React.createClass({
   onClick(e){
-    this.props.onSelectRect(e.currentTarget.getBBox());
+    var t = e.currentTarget;
+    var tm = t.getCTM();
+    var tm2 = tm.inverse();
+    var bbox = t.getBBox();
+
+    var svg = document.getElementById('svg');
+    var pt = svg.createSVGPoint();  // Created once for document
+    pt.x = bbox.x+bbox.width;
+    pt.y = bbox.y+bbox.height;
+    var pt2 = pt.matrixTransform(tm);
+    var pt3 = pt.matrixTransform(tm2);
+
+    this.props.onSelected(e.currentTarget.getBBox(), e.currentTarget.id);
   },
   render: function() {
     return (
-      <text x={this.props.data.x} y={this.props.data.y} onClick={this.onClick}>{this.props.data.text}</text>
-    );
-  }
-});
-var Selection = React.createClass({
-  render: function() {
-    return (
-      <rect id='selection' x={this.props.data.x} y={this.props.data.y} width={this.props.data.width} height={this.props.data.height} />
-    );
-  }
-});
-var Msg = React.createClass({
-  render: function() {
-    return (
-      <div>{this.props.data.pt.x.toFixed(2)},{this.props.data.pt.y.toFixed(2)},{this.props.data.button}</div>
-    );
-  }
-});
-var Mouse = React.createClass({
-  render: function() {
-    var x, y;
-    if (this.props.corner == 'lt'){
-      x = this.props.data.pt.x - sz;
-      y = this.props.data.pt.y - sz;
-    }
-    if (this.props.corner == 'rb'){
-      x = this.props.data.pt.x + sz;
-      y = this.props.data.pt.y + sz;
-    }
-    return (
-      <rect x={x} y={y} height={2*sz} width={2*sz} />
+      <text id={this.props.data.id} x={this.props.data.x} y={this.props.data.y} transform={this.props.data.transform} onClick={this.onClick}>{this.props.data.text}</text>
     );
   }
 });
@@ -56,27 +40,25 @@ var Handle = React.createClass({
       x = x + this.props.data.width;
     }
     return (
-      <rect id={this.props.corner} className="handle" x={x}  y={y} height={sz*2} width= {sz*2} onMouseDown={this.props.onMouseDown} />
+      <rect id={this.props.corner} className="handle" x={x}  y={y} height={sz*2} width= {sz*2} onMouseDown={this.props.onMouseDown} onMouseUp={this.props.onMouseUp} />
     );
   }
 });
 
-var Ellipse = React.createClass({
-  onSelect: function(e){
-    console.log("select");
-  },
+var Selection = React.createClass({
   render: function() {
     return (
-      <ellipse cx={this.props.data.cx}  cy={this.props.data.cy} rx={this.props.data.rx} ry= {this.props.data.ry} onClick={this.onSelect} />
+      <g id='selection'>
+        <rect  x={this.props.data.x} y={this.props.data.y} width={this.props.data.width} height={this.props.data.height} />
+        {['lt', 'rt', 'lb', 'rb'].map(function(corner) {
+          return <Handle key={corner} corner={corner} data={this.props.data} onMouseUp={this.props.onMouseUp} onMouseDown={this.props.onMouseDown} />;
+        }.bind(this))}
+      </g>
     );
   }
 });
 
-var SvgCanvas = React.createClass({
-  startX: 0,
-  startY: 0,
-  bMouseDown: false,
-  handleSelected: false,
+var Canvas = React.createClass({
   getXY: function(e){
     var svg = document.getElementById('svg');
     var canvas = document.getElementById('canvas');
@@ -89,62 +71,31 @@ var SvgCanvas = React.createClass({
     return pt;
   },
   onMouseDown: function(e){
+    e.stopPropagation();
+    e.preventDefault();
     var pt = this.getXY(e);
-    //this.handleSelected = false;
-    this.props.onMouseChange(pt);
-    this.state.data.handles.forEach(function(handle){
-      if ((pt.x > handle.x) && (pt.y > handle.y) && (pt.x < handle.x+sz) && (pt.y < handle.y+sz)){
-        this.handleSelected = true;
-      }
-    });
-
-    this.startX = pt.x;
-    this.startY = pt.y;
-    this.bMouseDown = true;
+    this.props.onMouseDown(pt, e.currentTarget.id);
   },
   onMouseUp: function(e){
-    this.bMouseDown = false;
-    this.startX = 0;
-    this.startY = 0;
+    e.stopPropagation();
+    e.preventDefault();
+    var pt = this.getXY(e);
+    this.props.onMouseUp(pt, e.currentTarget.id);
   },
   onMouseMove: function(e){
-    //console.log(this.bMouseDown+","+this.handleSelected);
     var pt = this.getXY(e);
-    this.props.onMouseChange(pt);
-    if (this.bMouseDown){
-      var pt = this.getXY(e);
-      //console.log(pt);
-      var dltX = pt.x - this.startX;
-      var dltY = pt.y - this.startY;
-      this.startX = pt.x;
-      this.startY = pt.y;
-
-      this.setState({data: React.addons.update(data, {
-        handles: {$set: [{x:this.state.data.handles[0].x + dltX, y:this.state.data.handles[0].y + dltX}]}
-      })});
-    }
-  },
-  getInitialState: function() {
-    return {data: this.props.data};
+    this.props.onMouseMove(pt, e.currentTarget.id);
   },
   render: function() {
-    //console.log(this.props.data);
     //<g id="canvas" transform="matrix(1 0 0 -1 0 100)">
     return (
       <svg id='svg' width="400px" height="400px" viewBox="0 0 100 100" onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp} onMouseMove={this.onMouseMove} >
       <g id="canvas" transform="matrix(1 0 0 1 0 0)">
         <rect x='0' y='0' height='100' width='100' className='border' />
-        <Mouse data={this.props.data.mouse} corner='lt' />
-        <Mouse data={this.props.data.mouse} corner='rb'/>
-        <Ellipse data={this.props.data.ellipse}/>
-        <Selection data={this.props.data.selection}/>
-
-        {['lt', 'rt', 'lb', 'rb'].map(function(corner) {
-          return <Handle key={corner} corner={corner} data={this.props.data.selection} onMouseDown={this.props.onMouseDown} />;
-        }.bind(this))}
+        <Selection data={this.props.data.selection} onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp}/>
 
         {this.props.data.elements.map(function(element, i) {
-          return <Element key={i} data={element} onSelectRect={this.props.onSelectRect} />;
+          return <Element key={i} data={element} onSelected={this.props.onSelected} />;
         }.bind(this))}
       </g>
       </svg>
@@ -152,22 +103,10 @@ var SvgCanvas = React.createClass({
   }
 });
 
-var SvgAttrs = React.createClass({
-  getInitialState: function() {
-    return {data: this.props.data};
-  },
-  handleChange: function(event) {
-    var cx = parseInt(event.target.value);
-    var data = this.state.data;
-    data.cx = cx;
-    this.setState({data: data});
-    this.props.onChange(data);
-  },
+var Msg = React.createClass({
   render: function() {
     return (
-      <div>
-        <input type="number" min="5" max="180" step="1" value={this.state.data.cx} name="cx" onChange={this.handleChange} />
-      </div>
+      <div>{this.props.data.pt.x.toFixed(2)},{this.props.data.pt.y.toFixed(2)},{this.props.data.button},{this.props.data.draging.toString()}</div>
     );
   }
 });
@@ -176,36 +115,97 @@ var Svg = React.createClass({
   getInitialState: function() {
     return {data: this.props.data};
   },
-  onMouseChange(pt){
+  onMouseMove: function(pt, elem){
     this.setState({data: React.addons.update(this.state.data, {
       mouse: {pt: {$set: pt}}
     })});
+    if (this.state.data.mouse.dragging){
+      this.dragging(pt, elem);
+    }
   },
-  onMouseDown(e){
-    var xxx = 1;
-    var xx = React.addons.update(this.state.data, {
-      mouse: {bt: {$set: xxx}}
-    });
-    console.log("1111111");
-    console.log(this.state.data);
-    xx.mouse.pt.x = 1234;
-    console.log("222222222");
-    console.log(xx);
-    this.setState({data: xx}, function(){
-      console.log("333333333");
-      console.log(this.state.data);
-    });
-  },
-  onSelectRect: function(rc){
+  onMouseDown: function(pt, elem){
     this.setState({data: React.addons.update(this.state.data, {
-      selection: {$set: rc}
+      mouse: {
+        pt: {$set: pt},
+      },
+    })});
+
+    if (elem != "svg"){
+      this.setState({data: React.addons.update(this.state.data, {
+        mouse: {
+          dragging: {$set: true},
+          dragStart: {$set: pt},
+          dragCorner: {$set: elem},
+          dragSelection: {$set: this.state.data.selection},
+        },
+      })});
+    }
+  },
+  onMouseUp: function(pt, elem){
+    console.log("release:"+pt.x+","+pt.y);
+    this.setState({data: React.addons.update(this.state.data, {
+      mouse: {
+        pt: {$set: pt},
+      },
+    })});
+
+    if (this.state.data.mouse.dragging){
+      var scaleX = this.state.data.selection.width/this.state.data.mouse.dragSelection.width;
+      var scaleY = this.state.data.selection.height/this.state.data.mouse.dragSelection.height;
+      var translateX = (1 - scaleX) * this.state.data.selection.x;
+      var translateY = (1 - scaleY) * this.state.data.selection.y;
+      var transform = "translate(" + translateX + "," + translateY + ") scale(" + scaleX + "," + scaleY + ")";
+      console.log(transform);
+      /*
+      this.setState({data: React.addons.update(this.state.data, {
+        mouse: {
+          dragging: {$set: false},
+          dragStart: {$set: null},
+          dragCorner: {$set: null},
+          dragSelection: {$set: null},
+        },
+      })});
+      */
+      var newData = React.addons.update(this.state.data, {});
+      newData.elements.forEach(function(element){
+        if (element.id == this.state.data.selection.elementId){
+          element.transform = transform;
+        }
+      }.bind(this));
+      newData.mouse.dragging = false;
+      newData.mouse.dragStart = null;
+      newData.mouse.dragCorner = null;
+      newData.mouse.dragSelection = null;
+      this.setState({data: newData});
+    }
+  },
+  dragging: function(pt, corner){
+    var dltx = pt.x - this.state.data.mouse.dragStart.x;
+    var dlty = pt.y - this.state.data.mouse.dragStart.y;
+    if (this.state.data.mouse.dragCorner == 'rb'){
+      this.setState({data: React.addons.update(this.state.data, {
+        selection: {
+          width: {$set: this.state.data.mouse.dragSelection.width + dltx},
+          height: {$set: this.state.data.mouse.dragSelection.height + dlty}
+        }
+      })});
+    }
+  },
+  onSelected: function(rc, id){
+    this.setState({data: React.addons.update(this.state.data, {
+      selection: {
+        x: {$set: rc.x},
+        y: {$set: rc.y},
+        width: {$set: rc.width},
+        height: {$set: rc.height},
+        elementId: {$set: id},
+      }
     })});
   },
   render: function() {
     return (
       <div>
-        <SvgCanvas data={this.state.data} onMouseChange={this.onMouseChange} onSelectRect={this.onSelectRect} onMouseDown={this.onMouseDown} />
-        <SvgAttrs data={this.state.data.ellipse} onChange={this.onChange} />
+        <Canvas data={this.state.data} onMouseMove={this.onMouseMove} onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp} onSelected={this.onSelected} />
         <Msg data={this.state.data.mouse} />
       </div>
     );

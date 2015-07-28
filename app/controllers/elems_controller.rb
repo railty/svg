@@ -6,6 +6,10 @@ class ElemsController < ApplicationController
   def index
     @elems = Elem.all
   end
+  
+  def test
+    @elems = Elem.all
+  end
 
   # GET /elems/1
   # GET /elems/1.json
