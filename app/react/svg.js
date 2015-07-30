@@ -1,6 +1,53 @@
 
 "use strict";
-var sz = 1;
+var sz = 1.5;
+
+var TBox = React.createClass({
+  getInitialState: function() {
+    return {
+      data: this.props.data,
+      bbox: null
+    };
+  },
+  componentDidMount: function(){
+    console.log("mount");
+    var t = React.findDOMNode(this).getElementsByTagName("text")[0];
+    var bbox = t.getBBox();
+    this.setState({bbox: bbox});
+
+    console.log(t.getBBox());
+    console.log(t.getExtentOfChar(1));
+    console.log(t.getExtentOfChar(2));
+    console.log(t.getExtentOfChar(3));
+    console.log(t.getExtentOfChar(4));
+    console.log(t.getExtentOfChar(5));
+    console.log(t.getExtentOfChar(6));
+  },
+  render: function() {
+    var x = this.props.data.x + this.props.data.width / 2;
+    var y = this.props.data.y + this.props.data.height / 2;
+    var rx = 1;
+    var ry = 1;
+    if (this.state.bbox != null) {
+      rx = this.props.data.width / this.state.bbox.width;
+      ry = this.props.data.height / this.state.bbox.height;
+    }
+    var transform = "scale(" + rx + "," + ry + ")";
+    if (this.state.bbox == null) return (
+      <g id={this.props.data.id}>
+        <rect x={this.props.data.x} y={this.props.data.y} width={this.props.data.width} height={this.props.data.height} />
+        <text x={x} y={y}>{this.props.data.text}</text>
+      </g>
+    )
+    else return (
+      <g id={this.props.data.id}>
+        <rect x={this.state.bbox.x} y={this.state.bbox.y} width={this.state.bbox.width} height={this.state.bbox.height} />
+        <rect x={this.props.data.x} y={this.props.data.y} width={this.props.data.width} height={this.props.data.height} />
+        <text x={x/rx} y={y/ry} transform={transform}>{this.props.data.text}</text>
+      </g>
+    )
+  }
+});
 
 var Element = React.createClass({
   onClick(e){
@@ -19,9 +66,14 @@ var Element = React.createClass({
     this.props.onSelected(e.currentTarget.getBBox(), e.currentTarget.id);
   },
   render: function() {
-    return (
-      <text id={this.props.data.id} x={this.props.data.x} y={this.props.data.y} transform={this.props.data.transform} onClick={this.onClick}>{this.props.data.text}</text>
-    );
+    switch(this.props.data.tag) {
+        case 'tb':
+          return (
+            <TBox data={this.props.data} />
+          );
+        default:
+            console.log("unknown tag");
+    }
   }
 });
 
@@ -39,6 +91,12 @@ var Handle = React.createClass({
     if (this.props.corner=='rt'){
       x = x + this.props.data.width;
     }
+    if (this.props.corner=='mt'){
+      x = x + this.props.data.width/2;
+    }
+    if (this.props.corner=='lm'){
+      y = y + this.props.data.height/2;
+    }
     return (
       <rect id={this.props.corner} className="handle" x={x}  y={y} height={sz*2} width= {sz*2} onMouseDown={this.props.onMouseDown} onMouseUp={this.props.onMouseUp} />
     );
@@ -50,7 +108,7 @@ var Selection = React.createClass({
     return (
       <g id='selection'>
         <rect  x={this.props.data.x} y={this.props.data.y} width={this.props.data.width} height={this.props.data.height} />
-        {['lt', 'rt', 'lb', 'rb'].map(function(corner) {
+        {['lt', 'rt', 'lb', 'rb', 'mt', 'lm'].map(function(corner) {
           return <Handle key={corner} corner={corner} data={this.props.data} onMouseUp={this.props.onMouseUp} onMouseDown={this.props.onMouseDown} />;
         }.bind(this))}
       </g>
@@ -88,6 +146,7 @@ var Canvas = React.createClass({
   },
   render: function() {
     //<g id="canvas" transform="matrix(1 0 0 -1 0 100)">
+    //<g id="canvas" transform="matrix(1 0 0 1 0 0)">
     return (
       <svg id='svg' width="400px" height="400px" viewBox="0 0 100 100" onMouseDown={this.onMouseDown} onMouseUp={this.onMouseUp} onMouseMove={this.onMouseMove} >
       <g id="canvas" transform="matrix(1 0 0 1 0 0)">
@@ -150,28 +209,44 @@ var Svg = React.createClass({
     })});
 
     if (this.state.data.mouse.dragging){
-      var scaleX = this.state.data.selection.width/this.state.data.mouse.dragSelection.width;
-      var scaleY = this.state.data.selection.height/this.state.data.mouse.dragSelection.height;
-      var translateX = (1 - scaleX) * this.state.data.selection.x;
-      var translateY = (1 - scaleY) * this.state.data.selection.y;
-      var transform = "translate(" + translateX + "," + translateY + ") scale(" + scaleX + "," + scaleY + ")";
-      console.log(transform);
-      /*
-      this.setState({data: React.addons.update(this.state.data, {
-        mouse: {
-          dragging: {$set: false},
-          dragStart: {$set: null},
-          dragCorner: {$set: null},
-          dragSelection: {$set: null},
-        },
-      })});
-      */
       var newData = React.addons.update(this.state.data, {});
-      newData.elements.forEach(function(element){
-        if (element.id == this.state.data.selection.elementId){
-          element.transform = transform;
-        }
-      }.bind(this));
+
+      if (this.state.data.mouse.dragCorner == 'rb'){
+        var scaleX = this.state.data.selection.width/this.state.data.mouse.dragSelection.width;
+        var scaleY = this.state.data.selection.height/this.state.data.mouse.dragSelection.height;
+        //var translateX = (1 - scaleX) * this.state.data.selection.x;
+        //var translateY = (1 - scaleY) * this.state.data.selection.y;
+        var translateX = this.state.data.mouse.dragSelection.x/scaleX;
+        var translateY = (this.state.data.selection.height + this.state.data.mouse.dragSelection.y)/scaleY;
+
+        //var transform = "translate(" + translateX + "," + translateY + ") scale(" + scaleX + "," + scaleY + ")";
+        var transform = "scale(" + scaleX + "," + scaleY + ")";
+        console.log(transform);
+        newData.elements.forEach(function(element){
+          if (element.id == this.state.data.selection.elementId){
+            element.transform = transform;
+            //element.x = translateX;
+            //eglement.y = translateY;
+            console.log(element);
+          }
+        }.bind(this));
+      }
+
+      if (this.state.data.mouse.dragCorner == 'mt' || this.state.data.mouse.dragCorner == 'lm'){
+        var translateX = this.state.data.selection.x - this.state.data.mouse.dragSelection.x;
+        var translateY = this.state.data.selection.y - this.state.data.mouse.dragSelection.y;
+        var transform = "translate(" + translateX + "," + translateY + ")";
+        console.log(transform);
+        newData.elements.forEach(function(element){
+          if (element.id == this.state.data.selection.elementId){
+            //element.transform = transform;
+            element.x = element.x + translateX;
+            element.y = element.y + translateY;
+            console.log(element);
+          }
+        }.bind(this));
+      }
+
       newData.mouse.dragging = false;
       newData.mouse.dragStart = null;
       newData.mouse.dragCorner = null;
@@ -190,6 +265,14 @@ var Svg = React.createClass({
         }
       })});
     }
+  if (this.state.data.mouse.dragCorner == 'mt' || this.state.data.mouse.dragCorner == 'lm'){
+    this.setState({data: React.addons.update(this.state.data, {
+      selection: {
+        x: {$set: this.state.data.mouse.dragSelection.x + dltx},
+        y: {$set: this.state.data.mouse.dragSelection.y + dlty}
+      }
+    })});
+  }
   },
   onSelected: function(rc, id){
     this.setState({data: React.addons.update(this.state.data, {

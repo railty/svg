@@ -1,9 +1,13 @@
 var ElemDisplay = React.createClass({
   render: function() {
     return (
-      <div>
-        props:{this.props.data.mouse.pt.x}, {this.props.data.mouse.pt.y}, {this.props.data.mouse.button}
-      </div>
+      <svg>
+        <rect x="0" y="0" width="100%" height="100%" />
+        <rect x="0" y="0" width="100%" height="50%" />
+        <text x="50%" y="50%">
+      		Look, I’m centered!
+      	</text>
+      </svg>
     );
   }
 });

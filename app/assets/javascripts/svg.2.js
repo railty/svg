@@ -2,53 +2,6 @@
 "use strict";
 var sz = 1.5;
 
-var TBox = React.createClass({displayName: "TBox",
-  getInitialState: function() {
-    return {
-      data: this.props.data,
-      bbox: null
-    };
-  },
-  componentDidMount: function(){
-    console.log("mount");
-    var t = React.findDOMNode(this).getElementsByTagName("text")[0];
-    var bbox = t.getBBox();
-    this.setState({bbox: bbox});
-
-    console.log(t.getBBox());
-    console.log(t.getExtentOfChar(1));
-    console.log(t.getExtentOfChar(2));
-    console.log(t.getExtentOfChar(3));
-    console.log(t.getExtentOfChar(4));
-    console.log(t.getExtentOfChar(5));
-    console.log(t.getExtentOfChar(6));
-  },
-  render: function() {
-    var x = this.props.data.x + this.props.data.width / 2;
-    var y = this.props.data.y + this.props.data.height / 2;
-    var rx = 1;
-    var ry = 1;
-    if (this.state.bbox != null) {
-      rx = this.props.data.width / this.state.bbox.width;
-      ry = this.props.data.height / this.state.bbox.height;
-    }
-    var transform = "scale(" + rx + "," + ry + ")";
-    if (this.state.bbox == null) return (
-      React.createElement("g", {id: this.props.data.id}, 
-        React.createElement("rect", {x: this.props.data.x, y: this.props.data.y, width: this.props.data.width, height: this.props.data.height}), 
-        React.createElement("text", {x: x, y: y}, this.props.data.text)
-      )
-    )
-    else return (
-      React.createElement("g", {id: this.props.data.id}, 
-        React.createElement("rect", {x: this.state.bbox.x, y: this.state.bbox.y, width: this.state.bbox.width, height: this.state.bbox.height}), 
-        React.createElement("rect", {x: this.props.data.x, y: this.props.data.y, width: this.props.data.width, height: this.props.data.height}), 
-        React.createElement("text", {x: x/rx, y: y/ry, transform: transform}, this.props.data.text)
-      )
-    )
-  }
-});
-
 var Element = React.createClass({displayName: "Element",
   onClick(e){
     var t = e.currentTarget;
@@ -66,14 +19,9 @@ var Element = React.createClass({displayName: "Element",
     this.props.onSelected(e.currentTarget.getBBox(), e.currentTarget.id);
   },
   render: function() {
-    switch(this.props.data.tag) {
-        case 'tb':
-          return (
-            React.createElement(TBox, {data: this.props.data})
-          );
-        default:
-            console.log("unknown tag");
-    }
+    return (
+      React.createElement("text", {id: this.props.data.id, x: this.props.data.x, y: this.props.data.y, transform: this.props.data.transform, onClick: this.onClick}, this.props.data.text)
+    );
   }
 });
 
@@ -214,19 +162,16 @@ var Svg = React.createClass({displayName: "Svg",
       if (this.state.data.mouse.dragCorner == 'rb'){
         var scaleX = this.state.data.selection.width/this.state.data.mouse.dragSelection.width;
         var scaleY = this.state.data.selection.height/this.state.data.mouse.dragSelection.height;
-        //var translateX = (1 - scaleX) * this.state.data.selection.x;
-        //var translateY = (1 - scaleY) * this.state.data.selection.y;
-        var translateX = this.state.data.mouse.dragSelection.x/scaleX;
-        var translateY = (this.state.data.selection.height + this.state.data.mouse.dragSelection.y)/scaleY;
-
+        var translateX = (1 - scaleX) * this.state.data.selection.x;
+        var translateY = (1 - scaleY) * this.state.data.selection.y;
         //var transform = "translate(" + translateX + "," + translateY + ") scale(" + scaleX + "," + scaleY + ")";
         var transform = "scale(" + scaleX + "," + scaleY + ")";
         console.log(transform);
         newData.elements.forEach(function(element){
           if (element.id == this.state.data.selection.elementId){
             element.transform = transform;
-            //element.x = translateX;
-            //eglement.y = translateY;
+            //element.x = element.x / scaleX;
+            //element.y = (element.y + this.state.data.selection.height/2) / scaleY;
             console.log(element);
           }
         }.bind(this));
